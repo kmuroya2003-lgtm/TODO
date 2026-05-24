@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO Assigner Pro (Eco Mode)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #333333;
+            --primary-hover: #000000;
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #555555;
+            --border-color: #cccccc;
+            --success: #333333;
+            --warning: #333333;
+            --danger: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: none;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="date"]:focus {
+            border-color: var(--primary);
+        }
+
+        .file-upload-wrapper {
+            display: block;
+        }
+
+        .file-drop-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            background: #fafafa;
+        }
+
+        .file-drop-area:hover, .file-drop-area.dragover {
+            border-color: var(--primary);
+            background: #f0f0f0;
+        }
+
+        .file-drop-area input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-msg {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .file-success {
+            color: var(--text-main);
+            font-weight: 600;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 1rem;
+            background: #ffffff;
+            color: var(--text-main);
+            border: 2px solid var(--border-color);
+            border-radius: 0.25rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            border-color: var(--primary);
+            background: #f9f9f9;
+        }
+
+        .btn:disabled {
+            background: #eeeeee;
+            color: #999999;
+            border-color: #dddddd;
+            cursor: not-allowed;
+        }
+
+        #resultsSection {
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-main);
+            background: #f9f9f9;
+            font-size: 0.9rem;
+        }
+
+        .print-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-main);
+            border-radius: 2px;
+            display: inline-block;
+            vertical-align: middle;
+            background: white;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--text-main);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+            background: #ffffff;
+        }
+
+        .hidden { display: none !important; }
+        
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+        }
+
+        .toast {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary);
+            color: var(--text-main);
+            padding: 1rem 1.5rem;
+            border-radius: 0.25rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 1rem;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        select.assign-select {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background: #ffffff;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        select.assign-select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .btn-outline {
+            background: #ffffff;
+            border: 1px dashed var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            border-style: solid;
+            border-color: var(--primary);
+            background: #fafafa;
+        }
+
+        .task-input {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background: #ffffff;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .task-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        @media print {
+            body { background: white; color: black; padding: 0; min-height: auto; }
+            .container { max-width: 100%; padding: 0; margin: 0; }
+            .card { border: none; box-shadow: none; padding: 0; margin: 0; background: transparent; }
+            h1, .setup-card, #generateBtn, .toast-container, #printBtn { display: none !important; }
+            .card-title { color: black; margin-bottom: 1rem; }
+            table { width: 100%; border-collapse: collapse; margin-top: 0; border: 1px solid #000; }
+            th, td { border: 1px solid #000; padding: 8px; color: black !important; background: white !important; }
+            .badge { border: 1px solid #000; color: black !important; background: transparent !important; }
+            .print-checkbox { border: 2px solid #000; }
+            #resultsSection { display: block !important; margin-top: 0 !important; }
+            select.assign-select { border: none; appearance: none; -webkit-appearance: none; background: transparent; color: black; outline: none; padding: 0; font-weight: bold; }
+            .task-input { border: none; padding: 0; background: transparent; color: black; font-weight: bold; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>TODO Assigner Pro (Eco Mode)</h1>
+
+    <!-- Setup Card -->
+    <div class="card setup-card">
+        <h2 class="card-title">⚙️ 設定とファイル読み込み</h2>
+        
+        <div class="form-group">
+            <label class="form-label">割り当て対象の日付</label>
+            <input type="date" id="targetDate">
+        </div>
+
+        <div class="file-upload-wrapper">
+            <div class="file-drop-area" id="shiftDropArea">
+                <input type="file" id="shiftFile" accept=".xlsx, .xls">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📅</div>
+                <div style="font-weight: 600;">シフトExcelをアップロード</div>
+                <div class="file-msg">クリックまたはドラッグ＆ドロップ（※TODOリストはシステムに内蔵されています）</div>
+                <div class="file-success" id="shiftSuccess">✓ 読み込み完了</div>
+            </div>
+            
+            <div id="cacheStatus" style="display: none; padding: 1.5rem; background: #fafafa; border: 1px solid var(--border-color); border-radius: 0.5rem; text-align: center;">
+                <div style="color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">✓ 前回読み込んだシフトデータが保持されています</div>
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">このまま対象の日付を選んで割り当てを実行できます。（約1ヶ月間保持）</div>
+                <button id="clearCacheBtn" class="btn btn-outline" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;">新しいシフト表を読み込む (クリア)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action -->
+    <button class="btn hidden" id="generateBtn" disabled>
+        <span id="btnText">自動割り当てを実行する</span>
+    </button>
+
+    <!-- Results Card -->
+    <div class="card" id="resultsSection" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 class="card-title" style="margin-bottom: 0;">✨ 割り当て結果</h2>
+            <button class="btn" id="printBtn" style="width: auto; padding: 0.5rem 1.5rem; display: none;">🖨️ 印刷する</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;" class="setup-card">
+            ※急な欠勤や変更があった場合は、担当者のドロップダウンから直接変更できます。
+        </p>
+        <div id="resultsContent"></div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    // --- State ---
+    let shiftData = null;
+    let parsedEmployees = []; // { name: string, rowIdx: number }
+    let shiftDateColumns = {}; // { "YYYY-MM-DD": colIdx }
+    let shiftDayColumns = {}; // { dayNumber: colIdx }
+    let selectedMembers = new Set();
+    let commMembersList = []; // Automatically populated from '通信S部門計画'
+    
+    // Communication members hints fallback (Empty for privacy)
+    const commMemberHints = [];
+    // Hardcoded TODO Tasks
+    const defaultTasks = [
+        { task: '開通数チェック', reqShift: '早番' },
+        { task: 'POSあけ', reqShift: '早番' },
+        { task: 'ダミー戻し、1スパンメンテナンス', reqShift: '退勤時' },
+        { task: '品出し（出し切れていない商品確認まで）', reqShift: '早番退勤まで' },
+        { task: '両替', reqShift: '早番' },
+        { task: 'カウンター内5S・備品(下記〇つける)', reqShift: '遅番' },
+        { task: 'ゴミ捨て', reqShift: '遅番' },
+        { task: '水補充', reqShift: '中番・遅番' },
+        { task: 'TODO作成', reqShift: '遅番' },
+        { task: '自主棚卸　AirPods', reqShift: '月曜日' },
+        { task: '自主棚卸　端末、デモ機', reqShift: '火曜日' },
+        { task: '定数変更、コミット発注', reqShift: '水曜日' },
+        { task: 'カタログ、備品発注', reqShift: '木曜日' },
+        { task: '週末POP準備、貼り付け', reqShift: '金曜日' }
+    ];
+
+    // --- DOM Elements ---
+    const targetDateInput = document.getElementById('targetDate');
+    const shiftFileInput = document.getElementById('shiftFile');
+    const generateBtn = document.getElementById('generateBtn');
+    const btnText = document.getElementById('btnText');
+    const resultsSection = document.getElementById('resultsSection');
+    const resultsContent = document.getElementById('resultsContent');
+
+    // --- Initialization ---
+    function init() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        targetDateInput.value = `${year}-${month}-${day}`;
+
+        // キャッシュの読み込み
+        try {
+            const cachedStr = localStorage.getItem('todoAssignerCache');
+            if (cachedStr) {
+                const cacheData = JSON.parse(cachedStr);
+                const ageDays = (Date.now() - cacheData.timestamp) / (1000 * 60 * 60 * 24);
+                if (ageDays < 30) {
+                    shiftData = cacheData.shiftData;
+                    commMembersList = cacheData.commMembersList;
+                    
+                    document.getElementById('cacheStatus').style.display = 'block';
+                    document.getElementById('shiftDropArea').style.display = 'none';
+                    
+                    processShiftData(shiftData);
+                    checkReadyStatus();
+                } else {
+                    localStorage.removeItem('todoAssignerCache');
+                }
+            }
+        } catch (e) {
+            console.error("Cache load error", e);
+        }
+    }
+
+    // --- Events ---
+    document.getElementById('clearCacheBtn').addEventListener('click', () => {
+        localStorage.removeItem('todoAssignerCache');
+        shiftData = null;
+        commMembersList = [];
+        document.getElementById('cacheStatus').style.display = 'none';
+        document.getElementById('shiftDropArea').style.display = 'block';
+        document.getElementById('shiftSuccess').style.display = 'none';
+        document.getElementById('generateBtn').classList.add('hidden');
+        document.getElementById('generateBtn').disabled = true;
+        document.getElementById('shiftFile').value = '';
+        showToast('保持データをクリアしました。新しいファイルをアップロードしてください。', 'success');
+    });
+
+    // --- Utility ---
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.getElementById('toastContainer').appendChild(toast);
+        
+        void toast.offsetWidth;
+        toast.classList.add('show');
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    function checkReadyStatus() {
+        if (shiftData) {
+            generateBtn.classList.remove('hidden');
+            generateBtn.disabled = false;
+        }
+    }
+
+    function excelDateToJSDate(serial) {
+        const utc_days = Math.floor(serial - 25569);
+        return new Date(Date.UTC(1970, 0, 1 + utc_days));
+    }
+
+    function parseExcelDateColumn(cellValue) {
+        if (!cellValue) return null;
+        if (typeof cellValue === 'number') {
+            const d = excelDateToJSDate(cellValue);
+            return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        }
+        if (typeof cellValue === 'string') {
+            const match = cellValue.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (match) {
+                return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`;
+            }
+        }
+        return null;
+    }
+
+    // --- File Handling ---
+    function setupDragDrop(areaId, inputId) {
+        const dropArea = document.getElementById(areaId);
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('dragover'), false);
+        });
+    }
+
+    setupDragDrop('shiftDropArea', 'shiftFile');
+
+    shiftFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            document.getElementById('shiftSuccess').style.display = 'block';
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            
+            // 通信メンバーの取得ロジック
+            commMembersList = [];
+            const inputSheetName = workbook.SheetNames.find(n => n.includes('3）入力用') || n.includes('3)入力用') || n.includes('入力用'));
+            
+            if (inputSheetName) {
+                const inputSheet = workbook.Sheets[inputSheetName];
+                const inputData = XLSX.utils.sheet_to_json(inputSheet, { header: 1, raw: true });
+                
+                // 1. 名前が格納されている列を特定
+                let tempNameColIdx = 1;
+                for (let r = 0; r < Math.min(20, inputData.length); r++) {
+                    for (let c = 0; c < 10; c++) {
+                        const val = String(inputData[r][c] || '').replace(/\s+/g, '');
+                        if (val === '担当者' || val === '担当者名' || val === '氏名' || val === '名前') {
+                            tempNameColIdx = c;
+                        }
+                    }
+                }
+
+                // 2. 「CDが38」の出現回数をカウントし、2回目に出現した箇所を通信部門とする
+                commMembersList = [];
+                let cd38Count = 0;
+                let targetRowIdx = -1;
+                let cdColIdx = -1;
+                
+                for (let r = 0; r < inputData.length; r++) {
+                    const row = inputData[r];
+                    if (!row) continue;
+                    
+                    let has38 = false;
+                    for (let c = 0; c < 10; c++) {
+                        const cellVal = String(row[c] || '').trim();
+                        if (cellVal.startsWith('38') && cellVal.length >= 4 && /^\d+$/.test(cellVal)) {
+                            has38 = true;
+                            cdColIdx = c; // CDが書かれている列を記憶
+                            break;
+                        }
+                    }
+                    
+                    if (has38) {
+                        cd38Count++;
+                        if (cd38Count === 2) {
+                            targetRowIdx = r;
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetRowIdx !== -1) {
+                    const groupMembers = [];
+                    const leaderRow = inputData[targetRowIdx];
+
+                    // まずリーダー(38)をリストに追加
+                    const leaderName = String(leaderRow[tempNameColIdx] || '').trim().replace(/\s+/g, '');
+                    if (leaderName && !leaderName.includes('担当者') && !leaderName.includes('氏名')) {
+                        groupMembers.push(leaderName);
+                    }
+                    
+                    // リーダーの次の行から下に向かって、スタッフを連続して抽出
+                    for (let i = targetRowIdx + 1; i < inputData.length; i++) {
+                        const curRow = inputData[i];
+                        if (!curRow) break; // 空行でブロック終了
+                        
+                        const name = String(curRow[tempNameColIdx] || '').trim().replace(/\s+/g, '');
+                        if (!name || name.includes('担当者') || name.includes('氏名')) {
+                            break; // ヘッダーなどで終了
+                        }
+                        
+                        // CD列を見て、CDが途切れたら（空欄など）別のブロックとみなして終了
+                        if (cdColIdx !== -1) {
+                            const curCD = String(curRow[cdColIdx] || '').trim();
+                            // CDが空欄、または4桁以上の数字でない場合は終了
+                            if (curCD === '' || curCD.length < 4 || !/^\d+$/.test(curCD)) {
+                                break;
+                            }
+                            // もし次の部門のリーダー（別の「38」）が出現したら終了
+                            if (curCD.startsWith('38')) {
+                                break;
+                            }
+                        }
+                        
+                        groupMembers.push(name);
+                    }
+                    
+                    commMembersList = groupMembers;
+                }
+            } else if (workbook.SheetNames.includes('通信S部門計画')) {
+                const tsushinSheet = workbook.Sheets['通信S部門計画'];
+                const tsushinData = XLSX.utils.sheet_to_json(tsushinSheet, { header: 1, raw: true });
+                commMembersList = tsushinData
+                    .map(row => row[3])
+                    .filter(name => typeof name === 'string' && name.trim() !== '' && name !== '担当者名' && name !== '担当者　')
+                    .map(name => name.replace(/\s+/g, ''));
+            }
+
+            let sheetName = workbook.SheetNames[0];
+            const targetDate = new Date(document.getElementById('targetDate').value);
+            const yy = String(targetDate.getFullYear()).slice(-2);
+            const m = targetDate.getMonth() + 1;
+            const expectedPattern1 = `${yy}年${m}月`;
+            const expectedPattern2 = `${targetDate.getFullYear()}年${m}月`;
+            
+            const matched = workbook.SheetNames.find(n => n.includes(expectedPattern1) || n.includes(expectedPattern2));
+            if (matched) {
+                sheetName = matched;
+            } else {
+                const ymSheets = workbook.SheetNames.filter(n => n.includes('年') && n.includes('月'));
+                if (ymSheets.length > 0) {
+                    sheetName = ymSheets[ymSheets.length - 1];
+                } else if (workbook.SheetNames.includes('【印刷】シフト')) {
+                    sheetName = '【印刷】シフト';
+                }
+            }
+            
+            const sheet = workbook.Sheets[sheetName];
+            shiftData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }); 
+            
+            // Save to LocalStorage
+            try {
+                const cacheData = {
+                    shiftData: shiftData,
+                    commMembersList: commMembersList,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('todoAssignerCache', JSON.stringify(cacheData));
+            } catch (e) {
+                console.warn("Could not save to localStorage", e);
+            }
+
+            document.getElementById('cacheStatus').style.display = 'block';
+            document.getElementById('shiftDropArea').style.display = 'none';
+            
+            processShiftData(shiftData);
+            const count = parsedEmployees.filter(e => e.isCommMember).length;
+            showToast(`「${sheetName}」シートを読み込みました (${count}名)`);
+            checkReadyStatus();
+        } catch (err) {
+            console.error(err);
+            showToast('シフトファイルの読み込みに失敗しました', 'error');
+        }
+    });
+
+    // --- Shift Data Processing ---
+    function processShiftData(data) {
+        parsedEmployees = [];
+        shiftDateColumns = {};
+        shiftDayColumns = {};
+        
+        let dateRowIdx = -1;
+        for (let i = 0; i < Math.min(10, data.length); i++) {
+            const row = data[i];
+            let foundDates = 0;
+            for (let j = 0; j < row.length; j++) {
+                const cellValue = row[j];
+                const dateStr = parseExcelDateColumn(cellValue);
+                if (dateStr) {
+                    shiftDateColumns[dateStr] = j;
+                    const dObj = new Date(dateStr);
+                    if (dObj.getFullYear() < 1910 && typeof cellValue === 'number') {
+                        shiftDayColumns[Math.floor(cellValue)] = j;
+                    } else {
+                        shiftDayColumns[dObj.getDate()] = j;
+                    }
+                    foundDates++;
+                } else if (typeof cellValue === 'number' && cellValue >= 1 && cellValue <= 31) {
+                    shiftDayColumns[cellValue] = j;
+                    foundDates++;
+                } else if (typeof cellValue === 'string' && /^\d{1,2}日?$/.test(cellValue.trim())) {
+                    shiftDayColumns[parseInt(cellValue, 10)] = j;
+                    foundDates++;
+                }
+            }
+            if (foundDates > 5) {
+                dateRowIdx = i;
+                break;
+            }
+        }
+
+        if (dateRowIdx === -1) {
+            showToast('日付の行が見つかりませんでした。フォーマットを確認してください。', 'warning');
+        }
+
+        let nameColIdx = 1; // Default to 1 (newer format)
+        
+        // Try to auto-detect name column based on known communication members
+        let maxMatches = 0;
+        let bestColIdx = -1;
+        const searchMembers = (commMembersList && commMembersList.length > 0) ? commMembersList : commMemberHints;
+        
+        for (let c = 0; c < 10; c++) {
+            let matches = 0;
+            for (let r = 0; r < Math.min(100, data.length); r++) {
+                const cell = data[r][c];
+                if (typeof cell === 'string' && cell.trim().length > 1) {
+                    const isMember = searchMembers.some(member => cell.includes(member));
+                    if (isMember) matches++;
+                }
+            }
+            if (matches > maxMatches) {
+                maxMatches = matches;
+                bestColIdx = c;
+            }
+        }
+        
+        if (maxMatches > 0) {
+            nameColIdx = bestColIdx;
+        } else {
+            // Fallback to explicit header search
+            for (let r = 0; r < Math.min(20, data.length); r++) {
+                for (let c = 0; c < 10; c++) {
+                    const val = String(data[r][c] || '').replace(/\s+/g, '');
+                    if (val === '担当者' || val === '担当者名' || val === '氏名' || val === '名前') {
+                        nameColIdx = c;
+                    }
+                }
+            }
+        }
+        
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            const name = row[nameColIdx];
+            if (name && typeof name === 'string' && name.trim() !== '' && name !== '担当者名' && name !== '担当者') {
+                const searchName = name.replace(/\s+/g, '');
+                let isCommMember = searchMembers.some(member => searchName.includes(member) || member.includes(searchName));
+                
+                const rolesStr = [
+                    String(row[nameColIdx - 2] || ''),
+                    String(row[nameColIdx - 1] || ''),
+                    String(row[nameColIdx + 1] || '')
+                ].join('');
+                
+                if (rolesStr.includes('家電') || rolesStr.includes('季節') || rolesStr.includes('情報')) {
+                    isCommMember = false;
+                }
+                
+                // 役職欄に「家電」と入っていないが、名前マッチで通信と誤判定されてしまう人の除外
+                const cleanName = name.replace(/\s+/g, '');
+                if (cleanName.includes('鈴木大夢')) {
+                    isCommMember = false;
+                }
+
+                parsedEmployees.push({
+                    name: name.trim(),
+                    rowIdx: i,
+                    isCommMember: isCommMember
+                });
+            }
+        }
+
+        selectedMembers.clear();
+        parsedEmployees.forEach((emp, index) => {
+            if (emp.isCommMember) {
+                selectedMembers.add(index);
+            }
+        });
+    }
+
+    // --- Assignment Logic ---
+    generateBtn.addEventListener('click', () => {
+        if (!shiftData) return;
+
+        const dateStr = targetDateInput.value;
+        let colIdx = shiftDateColumns[dateStr];
+        
+        if (colIdx === undefined) {
+            // 文字列から直接日付を抽出（タイムゾーンによるズレを防止）
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const dayNum = parseInt(parts[2], 10);
+                if (shiftDayColumns[dayNum] !== undefined) {
+                    colIdx = shiftDayColumns[dayNum];
+                }
+            }
+            
+            if (colIdx === undefined) {
+                showToast(`${dateStr} のシフトデータが見つかりません。`, 'error');
+                return;
+            }
+        }
+
+        const workingMembers = {
+            '早': [],
+            '遅': [],
+            '中': [],
+            'その他': []
+        };
+
+        const allWorking = [];
+
+        Array.from(selectedMembers).forEach(empIdx => {
+            const emp = parsedEmployees[empIdx];
+            const shiftCode = shiftData[emp.rowIdx][colIdx];
+            
+            if (shiftCode) {
+                const strShift = String(shiftCode);
+                const isWorkingAtStore = strShift.includes('早') || strShift.includes('遅') || strShift.includes('中') || /\d/.test(strShift);
+                const isExcluded = strShift.includes('休') || strShift.includes('有') || strShift.includes('欠') || strShift.includes('明') || strShift.includes('応援');
+                
+                if (isWorkingAtStore && !isExcluded) {
+                    const memberInfo = { name: emp.name, shift: shiftCode, assignedCount: 0 };
+                    allWorking.push(memberInfo);
+                    
+                    let isEarly = strShift.includes('早');
+                    let isLate = strShift.includes('遅');
+                    let isMid = strShift.includes('中');
+                    
+                    const timeMatch = strShift.match(/(\d{1,2})/);
+                    if (timeMatch) {
+                        const hour = parseInt(timeMatch[1], 10);
+                        if (hour >= 8 && hour <= 11) isEarly = true;
+                        else if (hour === 12 || hour === 13) isMid = true;
+                        else if (hour >= 14 && hour <= 18) isLate = true;
+                    }
+                    
+                    if (isEarly) workingMembers['早'].push(memberInfo);
+                    if (isLate) workingMembers['遅'].push(memberInfo);
+                    if (isMid) workingMembers['中'].push(memberInfo);
+                    if (!isEarly && !isLate && !isMid) workingMembers['その他'].push(memberInfo);
+                }
+            }
+        });
+
+        if (allWorking.length === 0) {
+            showToast('指定日に出勤している通信メンバーがいません！', 'warning');
+        }
+
+        const pickPerson = (group) => {
+            if (!group || group.length === 0) return null;
+            const minCount = Math.min(...group.map(p => p.assignedCount));
+            const candidates = group.filter(p => p.assignedCount === minCount);
+            const person = candidates[Math.floor(Math.random() * candidates.length)];
+            person.assignedCount++;
+            return person.name;
+        };
+
+        const assignments = [];
+        
+        // Figure out day of week string
+        const dateObj = new Date(dateStr);
+        const dayOfWeekStr = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'][dateObj.getDay()];
+        
+        for (const t of defaultTasks) {
+            const reqShiftStr = t.reqShift;
+            
+            // Filter by day of week
+            const isDaySpecific = ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日', '日曜日'].includes(reqShiftStr);
+            if (isDaySpecific && reqShiftStr !== dayOfWeekStr) {
+                continue; // Skip this task for today
+            }
+
+            let assignee = '';
+            
+            if (reqShiftStr.includes('早番') || reqShiftStr.includes('早番退勤まで')) {
+                assignee = pickPerson(workingMembers['早']) || pickPerson(allWorking) || assignee;
+            } else if (reqShiftStr.includes('遅番')) {
+                assignee = pickPerson(workingMembers['遅']) || pickPerson(allWorking) || assignee;
+            } else if (reqShiftStr.includes('退勤時')) {
+                assignee = pickPerson(workingMembers['遅']) || pickPerson(workingMembers['中']) || pickPerson(allWorking) || assignee;
+            } else {
+                assignee = pickPerson(allWorking) || assignee;
+            }
+
+            assignments.push({
+                task: t.task,
+                reqShift: reqShiftStr,
+                assignedTo: assignee
+            });
+        }
+
+        renderResults(assignments, dateStr, dayOfWeekStr, allWorking);
+    });
+
+    function renderResults(assignments, dateStr, dayOfWeekStr, allWorking) {
+        resultsSection.style.display = 'block';
+        
+        if (assignments.length === 0) {
+            resultsContent.innerHTML = '<p style="color: var(--text-muted)">割り当てるタスクが見つかりませんでした。</p>';
+            return;
+        }
+
+        let html = `
+            <div style="margin-bottom: 1rem; color: var(--text-main); font-weight: 600;">
+                対象日: <strong>${dateStr} (${dayOfWeekStr})</strong>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%; text-align: center;">完了</th>
+                        <th style="width: 45%;">タスク内容</th>
+                        <th style="width: 20%;">要求シフト</th>
+                        <th style="width: 30%;">担当者</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        assignments.forEach(a => {
+            let badgeClass = 'badge-default';
+
+            let selectHtml = `<select class="assign-select">`;
+            selectHtml += `<option value="">未定</option>`;
+            allWorking.forEach(w => {
+                const selected = w.name === a.assignedTo ? 'selected' : '';
+                selectHtml += `<option value="${w.name}" ${selected}>${w.name}</option>`;
+            });
+            selectHtml += `</select>`;
+
+            html += `
+                <tr>
+                    <td style="text-align: center;"><div class="print-checkbox"></div></td>
+                    <td>${a.task}</td>
+                    <td><span class="badge ${badgeClass}">${a.reqShift}</span></td>
+                    <td>${selectHtml}</td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>
+                 <button class="btn btn-outline" id="addTaskBtn" style="margin-top: 1rem; padding: 0.75rem;">＋ いきなり発生したTODOを追加する</button>`;
+                 
+        resultsContent.innerHTML = html;
+        document.getElementById('printBtn').style.display = 'inline-block';
+        showToast('割り当てが完了しました！');
+        
+        // Add Task Button Logic
+        document.getElementById('addTaskBtn').addEventListener('click', () => {
+            const tbody = resultsContent.querySelector('tbody');
+            const tr = document.createElement('tr');
+            
+            let selectHtml = `<select class="assign-select">`;
+            selectHtml += `<option value="">未定</option>`;
+            allWorking.forEach(w => {
+                selectHtml += `<option value="${w.name}">${w.name}</option>`;
+            });
+            selectHtml += `</select>`;
+
+            tr.innerHTML = `
+                <td style="text-align: center;"><div class="print-checkbox"></div></td>
+                <td><input type="text" class="task-input" placeholder="タスク名を入力..."></td>
+                <td>
+                    <select class="assign-select">
+                        <option value="指定なし">指定なし</option>
+                        <option value="早番">早番</option>
+                        <option value="遅番">遅番</option>
+                        <option value="退勤時">退勤時</option>
+                    </select>
+                </td>
+                <td>${selectHtml}</td>
+            `;
+            tbody.appendChild(tr);
+            tr.querySelector('input').focus();
+        });
+
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+        window.print();
+    });
+
+    init();
+
+</script>
+</body>
+</html>
